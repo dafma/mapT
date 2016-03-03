@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="filter-markers">
+<head>
+  <meta charset="UTF-8">
+  <title>Document</title>  </style> <!-- Ugly Hack due to jsFiddle issue: http://goo.gl/BUfGZ --> 
+    <script src="https://maps.googleapis.com/maps/api/js?sensor=false"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.27/angular.min.js"></script>
+    <script src="angular-gm.js"></script>
+    <link rel="stylesheet" href="https://storage.googleapis.com/code.getmdl.io/1.0.6/material.green-deep_purple.min.css" />
+    <script src="https://storage.googleapis.com/code.getmdl.io/1.0.6/material.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel='stylesheet prefetch' href='https://cdnjs.cloudflare.com/ajax/libs/dialog-polyfill/0.4.2/dialog-polyfill.min.css'>
+    <style>
+    .map {
+      height: 700px;
+    }
+    .mdl-dialog {
+  border: none;
+  box-shadow: 0 9px 46px 8px rgba(0, 0, 0, 0.14), 0 11px 15px -7px rgba(0, 0, 0, 0.12), 0 24px 38px 3px rgba(0, 0, 0, 0.2);
+  width: 280px; }
+  .mdl-dialog__title {
+    padding: 24px 24px 0;
+    margin: 0;
+    font-size: 2.5rem; }
+  .mdl-dialog__actions {
+    padding: 8px 8px 8px 24px;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-flex-direction: row-reverse;
+        -ms-flex-direction: row-reverse;
+            flex-direction: row-reverse;
+    -webkit-flex-wrap: wrap;
+        -ms-flex-wrap: wrap;
+            flex-wrap: wrap; }
+    .mdl-dialog__actions > * {
+      margin-right: 8px;
+      height: 36px; }
+      .mdl-dialog__actions > *:first-child {
+        margin-right: 0; }
+    .mdl-dialog__actions--full-width {
+      padding: 0 0 8px 0; }
+      .mdl-dialog__actions--full-width > * {
+        height: 48px;
+        -webkit-flex: 0 0 100%;
+            -ms-flex: 0 0 100%;
+                flex: 0 0 100%;
+        padding-right: 16px;
+        margin-right: 0;
+        text-align: right; }
+  .mdl-dialog__content {
+    padding: 20px 24px 24px 24px;
+    color: rgba(0,0,0, 0.54); }
+
+    /* 
+    Fixes Bootstrap issues with Google Maps
+    see http://stackoverflow.com/a/9170756 
+    */
+
+
+    .person-list {
+      overflow-y: scroll;
+      height: 150px;
+    }
+</style>
+</head>
+<body ng-controller="FilterMarkersCtrl">
+<!-- The drawer is always open in large screens. The header is always shown,
+  even in small screens. -->
+<div class="mdl-layout mdl-js-layout mdl-layout--fixed-drawer
+            mdl-layout--fixed-header">
+  <header class="mdl-layout__header">
+    <div class="mdl-layout__header-row">
+      <div class="mdl-layout-spacer"></div>
+      <div class="mdl-textfield mdl-js-textfield mdl-textfield--expandable
+                  mdl-textfield--floating-label mdl-textfield--align-right">
+        <label class="mdl-button mdl-js-button mdl-button--icon"
+               for="fixed-header-drawer-exp">
+          <i class="material-icons">search</i>
+        </label>
+        <div class="mdl-textfield__expandable-holder">
+          <input class="mdl-textfield__input" type="text" name="sample"
+                 id="fixed-header-drawer-exp">
+        </div> 
+    </div>
+  </header>
+  <div class="mdl-layout__drawer">
+    <span class="mdl-layout-title">ParkiTolu</span>
+    <nav class="mdl-navigation">
+      <div class="mdl-navigation__link">
+          <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-2">
+            <input type="checkbox" id="checkbox-2" class="mdl-checkbox__input" ng-model="filters.comida"   ng-change="filterPeople()">
+            <span class="mdl-checkbox__label">Disponibles</span> 
+          </label>
+      </div>
+      <div class="mdl-navigation__link">  
+          <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-1">
+              <input type="checkbox" id="checkbox-1" class="mdl-checkbox__input" ng-model="filters.bar" ng-change="filterPeople()">
+              <span class="mdl-checkbox__label">Ocupados</span>
+            </label>
+      </div>
+
+      <div class="mdl-navigation__link">
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+					<input class="mdl-textfield__input" type="text" id="sample3" ng-model="filters.name" ng-change="filterPeople()">
+					<label class="mdl-textfield__label" for="sample3">Nombre del parkimetro</label>
+				</div>  
+		    <div class="well person-list">
+                <li ng-repeat="(id, person) in filteredPeople">
+                    {{person.name}}, {{person.gender}}
+                </li>
+            </div>
+      </div>
+      <div class="mdl-navigation__link">
+		    <button class="mdl-button mdl-button--raised mdl-js-button dialog-button">Comprar</button>
+      </div>
+
+    </nav>
+  </div>
+  <main class="mdl-layout__content">
+    <div class="page-content">
+              <div>     
+                <gm-map gm-map-id="'filterMarkersMap'" gm-center="center" gm-zoom="zoom" 
+                        gm-map-options="options.map" class="map">
+            
+                  <gm-markers gm-objects="people"
+                              gm-id="object.id"
+                              gm-position="{lat: object.location.lat, lng: object.location.lng}"
+                              gm-marker-options="getMarkerOptions(object)">
+                  </gm-markers>
+                </gm-map>
+              </div>
+              <div>
+
+
+
+                
+
+
+
+              </div>
+
+              	<dialog id="dialog" class="mdl-dialog">
+				  <h6 class="mdl-dialog__title">Comprar Tiempo</h6>
+				  <div class="mdl-dialog__content">
+				  		<h6>Parquimetro: HGD-12</h6>
+						<form action="#">
+						  <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+						    <input class="mdl-textfield__input" type="text" id="sample3">
+						    <label class="mdl-textfield__label" for="sample3">Text...</label>
+						  </div>
+						</form>
+						<uli>
+							<li>
+								<label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-1">
+								  <input type="radio" id="option-1" class="mdl-radio__button" name="options" value="1" checked>
+								  <span class="mdl-radio__label">10 min $2.00</span>
+								</label>
+							</li>
+							<li>
+								<label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-2">
+								  <input type="radio" id="option-2" class="mdl-radio__button" name="options" value="2">
+								  <span class="mdl-radio__label">30 min $5.00</span>
+								</label>
+							</li>
+							<li>
+								<label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-3">
+								  <input type="radio" id="option-3" class="mdl-radio__button" name="options" value="3" checked>
+								  <span class="mdl-radio__label">1 Hora $10.00 </span>
+								</label>
+							</li>
+							<li>
+								<label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-4">
+								  <input type="radio" id="option-4" class="mdl-radio__button" name="options" value="4">
+								  <span class="mdl-radio__label">Libre  $50.00</span>
+								</label>
+							</li>
+						</uli>
+
+
+
+				  </div>
+				  <div class="mdl-dialog__actions">
+				    <button type="button" class="mdl-button">Cerrar</button>
+				    <button type="button" class="mdl-button">Comprar</button>
+				  
+				  </div>
+				</dialog>
+    </div>
+  </main>
+</div>
+
+
+
+
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/dialog-polyfill/0.4.2/dialog-polyfill.min.js'></script>
+<script src='https://storage.googleapis.com/code.getmdl.io/1.0.6/material.min.js'></script>
+
+<script>
+	  (function() {
+    'use strict';
+    var dialogButton = document.querySelector('.dialog-button');
+    var dialog = document.querySelector('#dialog');
+    if (! dialog.showModal) {
+      dialogPolyfill.registerDialog(dialog);
+    }
+    dialogButton.addEventListener('click', function() {
+       dialog.showModal();
+    });
+    dialog.querySelector('button:not([disabled])')
+    .addEventListener('click', function() {
+      dialog.close();
+    });
+  }());
+</script>
+
+
+<script>
+    angular.module('filter-markers', ['AngularGM'])
+
+  .controller('FilterMarkersCtrl', function($scope) {
+    $scope.icons = {
+      gray: 'img/verde.ico',
+      red: 'img/rojo.ico',
+    }
+    
+    $scope.options = {
+      map: {
+        center: new google.maps.LatLng(19.28756 , -99.656757),
+        zoom: 18,
+        mapTypeId: google.maps.MapTypeId.ROADMAP
+      },
+      highlighted: {
+        icon: $scope.icons.red
+      },
+      unhighlighted: {
+        icon: $scope.icons.gray
+      },
+    };
+
+    $scope.filters = {
+      name: null,
+      comida: true,
+      bar : true,
+      transporte: true,
+      female: true
+    }
+   	
+
+    $scope.getMarkerOptions = function(person) {
+      var opts = {title: person.name};
+      if (person.id in $scope.filteredPeople) {
+        return angular.extend(opts, $scope.options.highlighted);
+      } else {
+        return angular.extend(opts, $scope.options.unhighlighted);
+      }
+    };
+    
+    $scope.filterPeople = function() {
+      $scope.filteredPeople = {};
+      angular.forEach($scope.people, function(person) {
+        var nameMatch = ($scope.filters.name) ? ~person.name.indexOf($scope.filters.name) : true;
+        var isComida = person.gender === 'ocupado';
+        var isBAr = person.gender === 'desocupado'
+        var genderMatch = ($scope.filters.comida && isComida) ||
+                          ($scope.filters.bar && !isComida);
+        if (nameMatch && genderMatch) {
+          $scope.filteredPeople[person.id] = person;
+        }
+      });
+      $scope.$broadcast('gmMarkersUpdate', 'people');
+    };
+    
+    $scope.$watch('people', function() {
+      $scope.filterPeople();
+    });
+
+    $scope.people = [
+      {"id":1,"name":"HGD-12","gender":"disponible","location":{"lat":19.28791640537153,"lng":-99.65708836913109}},
+      {"id":2,"name":"HGD-13","gender":"ocupado","location":{"lat":19.287893620444983,"lng":-99.65708836913109}},
+      {"id":3,"name":"HGD-14","gender":"ocupado","location":{"lat":19.287865139282356,"lng":-99.65708769857883}},
+      {"id":4,"name":"HGD-15","gender":"ocupado","location":{"lat":19.287842354348687,"lng":-99.65708769857883}},
+      {"id":5,"name":"HGD-16","gender":"disponible","location":{"lat":19.28782653147622,"lng":-99.65708836913109}},
+      {"id":6,"name":"HGD-17","gender":"diponible","location":{"lat":19.28780944277224,"lng":-99.65708903968334}},
+      {"id":7,"name":"MMD-12","gender":"disponible","location":{"lat":19.287919569944407,"lng":-99.65636551380157}},
+      {"id":8,"name":"MMD-13","gender":"ocupado","location":{"lat":19.287876531748,"lng":-99.65637356042862}},
+      {"id":9,"name":"MMD-14","gender":"ocupado","location":{"lat":19.287823366901538,"lng":-99.65637356042862}},
+      {"id":10,"name":"MMD-15","gender":"ocupado","location":{"lat":19.287762607055882,"lng":-99.65637356042862}},
+      {"id":11,"name":"MMD-16","gender":"disponible","location":{"lat":19.287917671200677,"lng":-99.65638361871243}},
+      {"id":12,"name":"MMD-17","gender":"diponible","location":{"lat":19.287891088786292,"lng":-99.65638495981693}},
+      {"id":13,"name":"IAD-12","gender":"disponible","location":{"lat":19.28803919075437,"lng":-99.6557305008173}},
+      {"id":14,"name":"IAD-13","gender":"ocupado","location":{"lat":19.28801450710234,"lng":-99.65572580695152}},
+      {"id":15,"name":"IAD-14","gender":"ocupado","location":{"lat":19.287991722189435,"lng":-99.65572647750378}},
+      {"id":16,"name":"IAD-15","gender":"ocupado","location":{"lat":19.287941089038355,"lng":-99.65572647750378}},
+      {"id":17,"name":"IAD-16","gender":"disponible","location":{"lat":19.287913240798574,"lng":-99.65572580695152}},
+      {"id":18,"name":"IAD-17","gender":"diponible","location":{"lat":19.287885392554077,"lng":-99.65572647750378}},
+      {"id":19,"name":"NBD-12","gender":"disponible","location":{"lat":19.28799488676086,"lng":-99.65771667659283}},
+      {"id":20,"name":"NBD-13","gender":"ocupado","location":{"lat":19.28796260812949,"lng":-99.65771734714508}},
+      {"id":21,"name":"NBD-14","gender":"ocupado","location":{"lat":19.287935392807878,"lng":-99.65771466493607}},
+      {"id":22,"name":"NBD-15","gender":"ocupado","location":{"lat":19.287902481250132,"lng":-99.65771332383156}},
+      {"id":23,"name":"NBD-16","gender":"disponible","location":{"lat":19.287873367174296,"lng":-99.65771332383156}},
+      {"id":24,"name":"NBD-17","gender":"diponible","location":{"lat":19.287848683497256,"lng":-99.65771868824959}},
+      {"id":25,"name":"JVD-12","gender":"disponible","location":{"lat":19.288001848817785,"lng":-99.65847708284855}},
+      {"id":26,"name":"JVD-13","gender":"ocupado","location":{"lat":19.287982228474807,"lng":-99.65847373008728}},
+      {"id":27,"name":"JVD-14","gender":"ocupado","location":{"lat":19.2879537473276,"lng":-99.65847373008728}},
+      {"id":28,"name":"JVD-15","gender":"ocupado","location":{"lat":19.28792906366267,"lng":-99.65847305953503}},
+      {"id":29,"name":"JVD-16","gender":"disponible","location":{"lat":19.287903747079394,"lng":-99.65847104787827}},
+      {"id":30,"name":"JVD-17","gender":"diponible","location":{"lat":19.28788475963937,"lng":-99.65847171843052}},
+      {"id":31,"name":"HGI-12","gender":"disponible","location":{"lat":19.288020203330053,"lng":-99.65712055563927}},
+      {"id":32,"name":"HGI-13","gender":"ocupado","location":{"lat":19.287991722189435 ,"lng":-99.6571185439825}},
+      {"id":33,"name":"HGI-14","gender":"ocupado","location":{"lat":19.28797020310214,"lng":-99.65711921453476}},
+      {"id":34,"name":"HGI-15","gender":"ocupado","location":{"lat":19.28794425361076,"lng":-99.65712256729603}},
+      {"id":35,"name":"HGI-16","gender":"disponible","location":{"lat":19.287922101602653,"lng":-99.65711988508701}},
+      {"id":36,"name":"HGI-17","gender":"diponible","location":{"lat":19.287892987530316,"lng":-99.657117202878}},
+      {"id":37,"name":"MMI-12","gender":"disponible","location":{"lat":19.28802969704249,"lng":-99.6564144641161}},
+      {"id":38,"name":"MMI-13","gender":"ocupado","location":{"lat":19.28800691213171,"lng":-99.65641848742962}},
+      {"id":39,"name":"MMI-14","gender":"ocupado","location":{"lat":19.287988557617968,"lng":-99.65641781687737}},
+      {"id":40,"name":"MMI-15","gender":"ocupado","location":{"lat":19.287963241043876,"lng":-99.65641647577286}},
+      {"id":41,"name":"MMI-16","gender":"disponible","location":{"lat":19.28794362069628,"lng":-99.65641647577286}},
+      {"id":42,"name":"MMI-17","gender":"diponible","location":{"lat":19.287920202858974,"lng":-99.65641513466835}},
+      {"id":43,"name":"IAI-12","gender":"disponible","location":{"lat":19.288024000815096,"lng":-99.65575933456421}},
+      {"id":44,"name":"IAI-13","gender":"ocupado","location":{"lat":19.287996152589425,"lng":-99.6557579934597}},
+      {"id":45,"name":"IAI-14","gender":"ocupado","location":{"lat":19.287975266417053,"lng":-99.65575866401196}},
+      {"id":46,"name":"IAI-15","gender":"ocupado","location":{"lat":19.2879537473276,"lng":-99.65575531125069}},
+      {"id":47,"name":"IAI-16","gender":"disponible","location":{"lat":19.287934126978858,"lng":-99.65575329959393}},
+      {"id":48,"name":"IAI-17","gender":"diponible","location":{"lat":19.287907544567133,"lng":-99.65575464069843}}
+
+      ]
+  });
+
+</script>
+  
+</body>
+</html>
